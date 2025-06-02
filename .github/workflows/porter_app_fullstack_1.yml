@@ -14,8 +14,6 @@ jobs:
               run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
             - name: Setup porter
               uses: porter-dev/setup-porter@v0.1.0
-              env:
-                  PORTER_VERSION: porter-v0.60.0
             - name: Deploy stack
               timeout-minutes: 30
               run: exec porter apply
