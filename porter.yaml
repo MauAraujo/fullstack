@@ -7,6 +7,7 @@ services:
     port: 8000
     cpuCores: 0.1
     ramMegabytes: 256
+    private: true
 build:
   method: docker
   context: .
