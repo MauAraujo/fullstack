@@ -7,6 +7,7 @@ services:
     port: 8000
     cpuCores: 0.1
     ramMegabytes: 256
-image:
-  repository: python
-  tag: "3.12-slim"
+build:
+  method: docker
+  context: .
+  dockerfile: ./Dockerfile
