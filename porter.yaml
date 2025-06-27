@@ -1,14 +1,19 @@
 version: v2
-name: fullstack
+name: test
 services:
-  - name: api
-    type: web
-    run: python main.py
-    port: 8000
-    cpuCores: 0.1
-    ramMegabytes: 256
-    private: true
+- name: web
+  run: ""
+  type: web
+  instances: 1
+  cpuCores: 0.19
+  ramMegabytes: 400
+  terminationGracePeriodSeconds: 30
+  port: 3000
+  private: true
+  sleep: false
+  serviceMeshEnabled: false
 build:
+  context: ./
   method: docker
-  context: .
   dockerfile: ./Dockerfile
+deploymentStrategy: {}
