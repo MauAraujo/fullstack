@@ -26,3 +26,5 @@ build:
   method: docker
   dockerfile: ./Dockerfile
 deploymentStrategy: {}
+envGroups:
+- json-file
