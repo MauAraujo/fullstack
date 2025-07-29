@@ -21,6 +21,15 @@ services:
   terminationGracePeriodSeconds: 30
   sleep: false
   serviceMeshEnabled: false
+- name: jb
+  run: ""
+  type: job
+  cpuCores: 0.19
+  ramMegabytes: 400
+  terminationGracePeriodSeconds: 30
+  timeoutSeconds: 3600
+  sleep: false
+  serviceMeshEnabled: false
 build:
   context: ./
   method: docker
