@@ -28,3 +28,4 @@ build:
 deploymentStrategy: {}
 envGroups:
 - json-file
+- yaml-file
