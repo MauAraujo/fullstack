@@ -1,7 +1,7 @@
 version: v2
 name: fullstack
 services:
-- name: web
+- name: ws
   run: ""
   type: web
   instances: 1
@@ -10,6 +10,15 @@ services:
   terminationGracePeriodSeconds: 30
   port: 3000
   private: true
+  sleep: false
+  serviceMeshEnabled: false
+- name: svc
+  run: ""
+  type: worker
+  instances: 1
+  cpuCores: 0.19
+  ramMegabytes: 400
+  terminationGracePeriodSeconds: 30
   sleep: false
   serviceMeshEnabled: false
 build:
