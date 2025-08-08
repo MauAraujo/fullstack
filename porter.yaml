@@ -1,18 +1,7 @@
 version: v2
-name: fullstack
+name: test
 services:
-- name: ws
-  run: ""
-  type: web
-  instances: 1
-  cpuCores: 0.19
-  ramMegabytes: 400
-  terminationGracePeriodSeconds: 30
-  port: 3000
-  private: true
-  sleep: false
-  serviceMeshEnabled: false
-- name: svc
+- name: ww
   run: ""
   type: worker
   instances: 1
@@ -21,20 +10,8 @@ services:
   terminationGracePeriodSeconds: 30
   sleep: false
   serviceMeshEnabled: false
-- name: jb
-  run: ""
-  type: job
-  cpuCores: 0.19
-  ramMegabytes: 400
-  terminationGracePeriodSeconds: 30
-  timeoutSeconds: 3600
-  sleep: false
-  serviceMeshEnabled: false
 build:
   context: ./
   method: docker
   dockerfile: ./Dockerfile
 deploymentStrategy: {}
-envGroups:
-- json-file
-- yaml-file
