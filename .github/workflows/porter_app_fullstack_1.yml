@@ -20,7 +20,7 @@ jobs:
               env:
                 PORTER_APP_NAME: fullstack
                 PORTER_CLUSTER: "1"
-                PORTER_DEPLOYMENT_TARGET_ID: 05b2b76f-82a5-448b-a9c0-df237006361e
+                PORTER_DEPLOYMENT_TARGET_ID: efce1b9a-78a0-4c27-b415-09b9a3a89d08
                 PORTER_HOST: https://mauricio.withporter.run
                 PORTER_PR_NUMBER: ${{ github.event.number }}
                 PORTER_PROJECT: "1"
