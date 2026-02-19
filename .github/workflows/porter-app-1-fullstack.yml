@@ -21,7 +21,7 @@ jobs:
                 PORTER_APP_NAME: fullstack
                 PORTER_CLUSTER: "1"
                 PORTER_DEPLOYMENT_TARGET_ID: e1c624cc-6272-41a3-9cea-8c887a1efbcf
-                PORTER_HOST: http://localhost
+                PORTER_HOST: https://mauricio.withporter.run
                 PORTER_PROJECT: "1"
                 PORTER_TAG: ${{ steps.vars.outputs.sha_short }}
                 PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
