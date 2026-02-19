@@ -3,7 +3,7 @@ on:
     branches:
       - main
 
-name: Porter Test - Customer Equivalent
+name: Porter Test - Customer Equivalent (Fixed)
 jobs:
   porter-deploy:
     runs-on: ubuntu-latest
@@ -18,8 +18,6 @@ jobs:
     - name: Disable containerd image store
       shell: bash
       run: |
-        # Docker 29.x defaults to containerd image store which has a push bug (moby/moby#51665)
-        # We disable the containerd snapshotter to avoid the bug
         DAEMON_JSON="/etc/docker/daemon.json"
         if [ -f "$DAEMON_JSON" ]; then
           jq '. + {"features": {"containerd-snapshotter": false}}' "$DAEMON_JSON" > /tmp/daemon.json
@@ -48,26 +46,10 @@ jobs:
         PORTER_CLUSTER: "1"
         PORTER_PROJECT: "1"
         PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        
-    - name: Update the image used for release
-      uses: porter-dev/porter-cli-action@v0.1.1
-      with:
-        command: update config --app release --tag ${{ steps.vars.outputs.sha_short }}
-      env:
-        PORTER_HOST: https://mauricio.withporter.run
-        PORTER_CLUSTER: "1"
-        PORTER_PROJECT: "1"
-        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        
-    - name: Run the release job
-      uses: porter-dev/porter-run-job-action@v0.1.0
-      with:
-        job: release
-        cluster: "1"
-        project: "1"
-        host: https://mauricio.withporter.run
-        token: ${{ secrets.PORTER_APP_1_988596736 }}
-        
+
+    # I have removed the "Update image for release" and "Run release job" steps 
+    # because you do not have a resource named "release" in your Porter project.
+
     - name: Update the config for fullstack
       uses: porter-dev/porter-cli-action@v0.1.1
       with:
@@ -77,5 +59,4 @@ jobs:
         PORTER_CLUSTER: "1"
         PORTER_PROJECT: "1"
         PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        # Included from your local file to ensure it deploys to the right target
         PORTER_DEPLOYMENT_TARGET_ID: e1c624cc-6272-41a3-9cea-8c887a1efbcf
