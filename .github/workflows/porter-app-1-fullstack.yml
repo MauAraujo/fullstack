@@ -1,27 +1,81 @@
-"on":
-    push:
-        branches:
-            - main
-name: Deploy to fullstack
+on:
+  push:
+    branches:
+      - main
+
+name: Manual Deploy to Porter (Customer Style)
 jobs:
-    porter-deploy:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-            - name: Set Github tag
-              id: vars
-              run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-            - name: Setup porter
-              uses: porter-dev/setup-porter@v0.1.0
-            - name: Deploy stack
-              timeout-minutes: 30
-              run: porter apply
-              env:
-                PORTER_APP_NAME: fullstack
-                PORTER_CLUSTER: "1"
-                PORTER_DEPLOYMENT_TARGET_ID: e1c624cc-6272-41a3-9cea-8c887a1efbcf
-                PORTER_HOST: https://mauricio.withporter.run
-                PORTER_PROJECT: "1"
-                PORTER_TAG: ${{ steps.vars.outputs.sha_short }}
-                PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
+  porter-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set Github tag
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+    - name: Disable containerd image store
+      shell: bash
+      run: |
+        # Docker 29.x defaults to containerd image store which has a push bug
+        DAEMON_JSON="/etc/docker/daemon.json"
+        if [ -f "$DAEMON_JSON" ]; then
+          jq '. + {"features": {"containerd-snapshotter": false}}' "$DAEMON_JSON" > /tmp/daemon.json
+        else
+          echo '{"features": {"containerd-snapshotter": false}}' > /tmp/daemon.json
+        fi
+        sudo mv /tmp/daemon.json "$DAEMON_JSON"
+        sudo systemctl restart docker
+
+    - name: Build fullstack
+      uses: porter-dev/porter-cli-action@v0.1.1
+      with:
+        command: update build --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
+      env:
+        PORTER_HOST: https://mauricio.withporter.run
+        PORTER_CLUSTER: "1"
+        PORTER_PROJECT: "1"
+        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
+        
+    - name: Push fullstack
+      uses: porter-dev/porter-cli-action@v0.1.1
+      with:
+        command: update push --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
+      env:
+        PORTER_HOST: https://mauricio.withporter.run
+        PORTER_CLUSTER: "1"
+        PORTER_PROJECT: "1"
+        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
+        
+    # Note: This step assumes you have a 'release' job defined in your porter.yaml
+    - name: Update the image used for release
+      uses: porter-dev/porter-cli-action@v0.1.1
+      with:
+        command: update config --app release --tag ${{ steps.vars.outputs.sha_short }}
+      env:
+        PORTER_HOST: https://mauricio.withporter.run
+        PORTER_CLUSTER: "1"
+        PORTER_PROJECT: "1"
+        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
+        
+    - name: Run the release job
+      uses: porter-dev/porter-run-job-action@v0.1.0
+      with:
+        job: release
+        cluster: "1"
+        project: "1"
+        host: https://mauricio.withporter.run
+        token: ${{ secrets.PORTER_APP_1_988596736 }}
+        
+    - name: Update the config for fullstack
+      uses: porter-dev/porter-cli-action@v0.1.1
+      with:
+        command: update config --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
+      env:
+        PORTER_HOST: https://mauricio.withporter.run
+        PORTER_CLUSTER: "1"
+        PORTER_PROJECT: "1"
+        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
+        # Added deployment target for your specific infrastructure
+        PORTER_DEPLOYMENT_TARGET_ID: e1c624cc-6272-41a3-9cea-8c887a1efbcf
