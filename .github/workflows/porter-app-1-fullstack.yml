@@ -3,7 +3,7 @@ on:
     branches:
       - main
 
-name: Stable Porter Deploy (Binary + Build/Push)
+name: Porter Deploy - Exact Customer Structure (Safe Version)
 jobs:
   porter-deploy:
     runs-on: ubuntu-latest
@@ -12,56 +12,58 @@ jobs:
       PORTER_CLUSTER: "1"
       PORTER_PROJECT: "1"
       PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-      PORTER_APP_NAME: fullstack
-      # Use the deployment target ID for the final update
       PORTER_DEPLOYMENT_TARGET_ID: e1c624cc-6272-41a3-9cea-8c887a1efbcf
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Set Github tag
-        id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    - name: Set Github tag
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      # 1. Install Porter as a binary (Stable)
-      - name: Setup porter
-        uses: porter-dev/setup-porter@v0.1.1
+    # Use binary setup so we don't lose the tool when Docker restarts
+    - name: Setup porter
+      uses: porter-dev/setup-porter@v0.1.1
 
-      # 2. Apply the Docker Fix (Restarting is now safe)
-      - name: Disable containerd image store
-        shell: bash
-        run: |
-          DAEMON_JSON="/etc/docker/daemon.json"
-          if [ -f "$DAEMON_JSON" ]; then
-            jq '. + {"features": {"containerd-snapshotter": false}}' "$DAEMON_JSON" > /tmp/daemon.json
-          else
-            echo '{"features": {"containerd-snapshotter": false}}' > /tmp/daemon.json
-          fi
-          sudo mv /tmp/daemon.json "$DAEMON_JSON"
-          sudo systemctl restart docker
-          # Wait for Docker to recover
-          timeout 30s bash -c 'until docker info >/dev/null 2>&1; do echo "waiting for docker..."; sleep 2; done'
+    - name: Disable containerd image store
+      shell: bash
+      run: |
+        DAEMON_JSON="/etc/docker/daemon.json"
+        if [ -f "$DAEMON_JSON" ]; then
+          jq '. + {"features": {"containerd-snapshotter": false}}' "$DAEMON_JSON" > /tmp/daemon.json
+        else
+          echo '{"features": {"containerd-snapshotter": false}}' > /tmp/daemon.json
+        fi
+        sudo mv /tmp/daemon.json "$DAEMON_JSON"
+        sudo systemctl restart docker
+        # Wait for Docker to be ready
+        timeout 30s bash -c 'until docker info >/dev/null 2>&1; do echo "waiting for docker..."; sleep 2; done'
 
-      # 3. Build the image using the logic from your snippet
-      - name: Build Image
-        run: |
-          porter app build $PORTER_APP_NAME \
-            --build-method docker \
-            --build-context . \
-            --dockerfile ./Dockerfile \
-            --tag ${{ steps.vars.outputs.sha_short }}
+    - name: Build fullstack
+      run: porter update build --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
 
-      # 4. Push the image
-      - name: Push Image
-        run: |
-          porter app push $PORTER_APP_NAME \
-            --tag ${{ steps.vars.outputs.sha_short }}
+    - name: Push fullstack
+      run: porter update push --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
 
-      # 5. Final Step: Update the config to trigger the actual deploy
-      # This replaces the 'porter apply' or 'porter update config' 
-      - name: Deploy Update
-        run: |
-          porter app update $PORTER_APP_NAME \
-            --tag ${{ steps.vars.outputs.sha_short }} \
-            --deployment-target-id $PORTER_DEPLOYMENT_TARGET_ID
+    # Customer Step 3: Update image for the 'release' job
+    - name: Update the image used for release
+      run: porter update config --app release --tag ${{ steps.vars.outputs.sha_short }}
+      continue-on-error: true # Added this in case you don't have a 'release' job yet
+
+    # Customer Step 4: Run the 'release' job (migrations, etc.)
+    - name: Run the release job
+      run: porter job run release
+      continue-on-error: true # Added this in case you don't have a 'release' job yet
+
+    # Customer Step 5: Update the config for the main app
+    - name: Update the config for fullstack
+      run: |
+        porter update config --app fullstack \
+          --tag ${{ steps.vars.outputs.sha_short }} \
+          --deployment-target-id $PORTER_DEPLOYMENT_TARGET_ID
+
+    # Customer Step 6: Update the config for the worker
+    - name: Update the config for worker-production
+      run: porter update config --app worker-production --tag ${{ steps.vars.outputs.sha_short }}
+      continue-on-error: true # Added this because you might not have a worker named this
