@@ -3,60 +3,65 @@ on:
     branches:
       - main
 
-name: Porter Test - Customer Equivalent (Fixed)
+name: Stable Porter Deploy (Binary + Build/Push)
 jobs:
   porter-deploy:
     runs-on: ubuntu-latest
+    env:
+      PORTER_HOST: https://mauricio.withporter.run
+      PORTER_CLUSTER: "1"
+      PORTER_PROJECT: "1"
+      PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
+      PORTER_APP_NAME: fullstack
+      # Use the deployment target ID for the final update
+      PORTER_DEPLOYMENT_TARGET_ID: e1c624cc-6272-41a3-9cea-8c887a1efbcf
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2.3.4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Set Github tag
-      id: vars
-      run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      - name: Set Github tag
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-    - name: Disable containerd image store
-      shell: bash
-      run: |
-        DAEMON_JSON="/etc/docker/daemon.json"
-        if [ -f "$DAEMON_JSON" ]; then
-          jq '. + {"features": {"containerd-snapshotter": false}}' "$DAEMON_JSON" > /tmp/daemon.json
-        else
-          echo '{"features": {"containerd-snapshotter": false}}' > /tmp/daemon.json
-        fi
-        sudo mv /tmp/daemon.json "$DAEMON_JSON"
-        sudo systemctl restart docker
+      # 1. Install Porter as a binary (Stable)
+      - name: Setup porter
+        uses: porter-dev/setup-porter@v0.1.1
 
-    - name: Build fullstack
-      uses: porter-dev/porter-cli-action@v0.1.1
-      with:
-        command: update build --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
-      env:
-        PORTER_HOST: https://mauricio.withporter.run
-        PORTER_CLUSTER: "1"
-        PORTER_PROJECT: "1"
-        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        
-    - name: Push fullstack
-      uses: porter-dev/porter-cli-action@v0.1.1
-      with:
-        command: update push --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
-      env:
-        PORTER_HOST: https://mauricio.withporter.run
-        PORTER_CLUSTER: "1"
-        PORTER_PROJECT: "1"
-        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
+      # 2. Apply the Docker Fix (Restarting is now safe)
+      - name: Disable containerd image store
+        shell: bash
+        run: |
+          DAEMON_JSON="/etc/docker/daemon.json"
+          if [ -f "$DAEMON_JSON" ]; then
+            jq '. + {"features": {"containerd-snapshotter": false}}' "$DAEMON_JSON" > /tmp/daemon.json
+          else
+            echo '{"features": {"containerd-snapshotter": false}}' > /tmp/daemon.json
+          fi
+          sudo mv /tmp/daemon.json "$DAEMON_JSON"
+          sudo systemctl restart docker
+          # Wait for Docker to recover
+          timeout 30s bash -c 'until docker info >/dev/null 2>&1; do echo "waiting for docker..."; sleep 2; done'
 
-    # I have removed the "Update image for release" and "Run release job" steps 
-    # because you do not have a resource named "release" in your Porter project.
+      # 3. Build the image using the logic from your snippet
+      - name: Build Image
+        run: |
+          porter app build $PORTER_APP_NAME \
+            --build-method docker \
+            --build-context . \
+            --dockerfile ./Dockerfile \
+            --tag ${{ steps.vars.outputs.sha_short }}
 
-    - name: Update the config for fullstack
-      uses: porter-dev/porter-cli-action@v0.1.1
-      with:
-        command: update config --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
-      env:
-        PORTER_HOST: https://mauricio.withporter.run
-        PORTER_CLUSTER: "1"
-        PORTER_PROJECT: "1"
-        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        PORTER_DEPLOYMENT_TARGET_ID: e1c624cc-6272-41a3-9cea-8c887a1efbcf
+      # 4. Push the image
+      - name: Push Image
+        run: |
+          porter app push $PORTER_APP_NAME \
+            --tag ${{ steps.vars.outputs.sha_short }}
+
+      # 5. Final Step: Update the config to trigger the actual deploy
+      # This replaces the 'porter apply' or 'porter update config' 
+      - name: Deploy Update
+        run: |
+          porter app update $PORTER_APP_NAME \
+            --tag ${{ steps.vars.outputs.sha_short }} \
+            --deployment-target-id $PORTER_DEPLOYMENT_TARGET_ID
