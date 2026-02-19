@@ -3,9 +3,9 @@ on:
     branches:
       - main
 
-name: Manual Deploy to Porter (Customer Style)
+name: Simulated External Build & Porter Deploy
 jobs:
-  porter-deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -15,10 +15,16 @@ jobs:
       id: vars
       run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
+    # --- SIMULATING CIRCLECI BUILD START ---
+    # In CircleCI, they might run a standard docker build. 
+    # We do this here to create a local image before Porter touches it.
+    - name: Build image (Simulating CircleCI)
+      run: docker build -t fullstack:${{ steps.vars.outputs.sha_short }} .
+    # --- SIMULATING CIRCLECI BUILD END ---
+
     - name: Disable containerd image store
       shell: bash
       run: |
-        # Docker 29.x defaults to containerd image store which has a push bug
         DAEMON_JSON="/etc/docker/daemon.json"
         if [ -f "$DAEMON_JSON" ]; then
           jq '. + {"features": {"containerd-snapshotter": false}}' "$DAEMON_JSON" > /tmp/daemon.json
@@ -28,37 +34,17 @@ jobs:
         sudo mv /tmp/daemon.json "$DAEMON_JSON"
         sudo systemctl restart docker
 
-    - name: Build fullstack
+    - name: Porter Push (Tag and upload to Porter Registry)
       uses: porter-dev/porter-cli-action@v0.1.1
       with:
-        command: update build --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
-      env:
-        PORTER_HOST: https://mauricio.withporter.run
-        PORTER_CLUSTER: "1"
-        PORTER_PROJECT: "1"
-        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        
-    - name: Push fullstack
-      uses: porter-dev/porter-cli-action@v0.1.1
-      with:
+        # Note: 'update push' looks for the image we built in the previous step
         command: update push --app fullstack --tag ${{ steps.vars.outputs.sha_short }}
       env:
         PORTER_HOST: https://mauricio.withporter.run
         PORTER_CLUSTER: "1"
         PORTER_PROJECT: "1"
         PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        
-    # Note: This step assumes you have a 'release' job defined in your porter.yaml
-    - name: Update the image used for release
-      uses: porter-dev/porter-cli-action@v0.1.1
-      with:
-        command: update config --app release --tag ${{ steps.vars.outputs.sha_short }}
-      env:
-        PORTER_HOST: https://mauricio.withporter.run
-        PORTER_CLUSTER: "1"
-        PORTER_PROJECT: "1"
-        PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        
+
     - name: Run the release job
       uses: porter-dev/porter-run-job-action@v0.1.0
       with:
@@ -77,5 +63,4 @@ jobs:
         PORTER_CLUSTER: "1"
         PORTER_PROJECT: "1"
         PORTER_TOKEN: ${{ secrets.PORTER_APP_1_988596736 }}
-        # Added deployment target for your specific infrastructure
         PORTER_DEPLOYMENT_TARGET_ID: e1c624cc-6272-41a3-9cea-8c887a1efbcf
