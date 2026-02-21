@@ -8,7 +8,7 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    return {"status": "healhthy"}
 
 if __name__ == "__main__":
     import uvicorn
