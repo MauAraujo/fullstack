@@ -20,7 +20,7 @@ jobs:
               env:
                 PORTER_APP_NAME: fullstack
                 PORTER_CLUSTER: "1"
-                PORTER_DEPLOYMENT_TARGET_ID: c6ebaaef-e415-4631-b396-af2b8d5949fc
+                PORTER_DEPLOYMENT_TARGET_ID: 8d5ddc96-bab0-4d2c-b500-a76920bf80f2
                 PORTER_HOST: https://mauricio.withporter.run
                 PORTER_PROJECT: "1"
                 PORTER_TAG: ${{ steps.vars.outputs.sha_short }}
