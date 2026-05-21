@@ -1,0 +1,24 @@
+version: v2
+name: fullstack
+services:
+- name: web
+  run: ""
+  type: web
+  instances: 1
+  cpuCores: 0.1
+  ramMegabytes: 400
+  terminationGracePeriodSeconds: 30
+  port: 8000
+  private: true
+  sleep: false
+build:
+  context: ./
+  method: docker
+  dockerfile: Dockerfile
+predeploy:
+  run: sleep 20
+  cpuCores: 0.16
+  ramMegabytes: 512
+  nodeGroup: df81a152-8996-4b3c-9ba0-7542b648212d
+  terminationGracePeriodSeconds: 0
+  timeoutSeconds: 3600
