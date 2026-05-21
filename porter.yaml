@@ -19,6 +19,5 @@ predeploy:
   run: sleep 20
   cpuCores: 0.16
   ramMegabytes: 512
-  nodeGroup: df81a152-8996-4b3c-9ba0-7542b648212d
   terminationGracePeriodSeconds: 0
   timeoutSeconds: 3600
