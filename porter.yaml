@@ -20,4 +20,5 @@ predeploy:
   cpuCores: 0.16
   ramMegabytes: 512
   terminationGracePeriodSeconds: 0
+  nodeGroup: df81a152-8996-4b3c-9ba0-7542b648212d
   timeoutSeconds: 3600
