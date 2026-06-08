@@ -9,16 +9,10 @@ services:
   ramMegabytes: 400
   terminationGracePeriodSeconds: 30
   port: 8000
-  private: true
+  domains:
+  - name: web-1-d36dcd4a-8548gyom.withporter.run
   sleep: false
 build:
   context: ./
   method: docker
   dockerfile: Dockerfile
-predeploy:
-  run: sleep 20
-  cpuCores: 0.16
-  ramMegabytes: 512
-  terminationGracePeriodSeconds: 0
-  nodeGroup: df81a152-8996-4b3c-9ba0-7542b648212d
-  timeoutSeconds: 3600
