@@ -17,13 +17,12 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TS_AUDIENCE }}
           tags: tag:ci
-          # the ingress is only reachable over an advertised subnet route
-          args: --accept-routes
 
       - name: Show what the name resolves to
         run: |
           echo "resolved: $(getent hosts echo.dev-porter.run || echo 'no answer')"
-          tailscale status --json | jq -r '.Peer[] | select((.AllowedIPs//[]) | any(test("^(10|172|192)\\."))) | "\(.HostName): \((.AllowedIPs//[]) | join(", "))"'
+          tailscale status --json | jq -r '.Peer[] | select((.AllowedIPs//[]) | any(test("^(10|172|192)\\."))) | "\(.HostName): \((.AllowedIPs//[]) | join(", "))"' || true
+          tailscale debug prefs | jq '{RouteAll}' || true
 
       - name: Call echo server and check response
         run: |
