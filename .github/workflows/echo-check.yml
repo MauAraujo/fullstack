@@ -21,8 +21,16 @@ jobs:
       - name: Call echo server and check response
         run: |
           # echo server reflects back query params under .request.query
-          response=$(curl -sf "https://echo.dev-porter.run/get?message=hello")
+          response=$(curl -sS "https://echo.dev-porter.run/get?message=hello" 2>curl_err)
+          curl_status=$?
+
+          echo "curl exit status: $curl_status"
           echo "Response: $response"
+          echo "Errors: $(cat curl_err)"
+
+          if [ "$curl_status" -ne 0 ]; then
+            exit 1
+          fi
 
           expected="hello"
           actual=$(echo "$response" | jq -r '.request.query.message')
