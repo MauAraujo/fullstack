@@ -7,7 +7,17 @@ on:
 jobs:
   echo-check:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
     steps:
+      - name: Tailscale
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TS_AUDIENCE }}
+          tags: tag:ci
+
       - name: Call echo server and check response
         run: |
           # echo server reflects back query params under .request.query
