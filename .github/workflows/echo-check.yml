@@ -1,0 +1,25 @@
+name: Echo Check
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  echo-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call echo server and check response
+        run: |
+          # echo server reflects back query params under .request.query
+          response=$(curl -sf "https://echo.dev-porter.run/get?message=hello")
+          echo "Response: $response"
+
+          expected="hello"
+          actual=$(echo "$response" | jq -r '.request.query.message')
+
+          if [ "$actual" = "$expected" ]; then
+            echo "Match: args.message = '$actual'"
+          else
+            echo "Mismatch: expected '$expected', got '$actual'"
+            exit 1
+          fi
