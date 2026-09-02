@@ -5,7 +5,7 @@
 name: Deploy to fullstack
 jobs:
     porter-deploy:
-        runs-on: ubuntu-latest
+        runs-on: arc-runner-set
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
